@@ -1,6 +1,8 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthenContext";
 import { ChatContext } from "../context/ChatContext";
+import CryptoJS from 'crypto-js';
+// import { REACT_APP_SECRET_KEY } from '../config';
 import {
   arrayUnion,
   doc,
@@ -11,6 +13,7 @@ import {
 import { db, storage } from "../firebase";
 import { v4 as uuid } from "uuid";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+const key = import.meta.env.VITE_SECRET_KEY;
 
 const Input = () => {
   const [text, setText] = useState("");
@@ -20,10 +23,14 @@ const Input = () => {
   const { data } = useContext(ChatContext);
 
   const handleSend = async () => {
+    
+    const encryptedText = CryptoJS.AES.encrypt(text, key).toString();
+
     if (img) {
       const storageRef = ref(storage, uuid());
 
       const uploadTask = uploadBytesResumable(storageRef, img);
+      
 
       uploadTask.on(
         (error) => {
@@ -32,13 +39,14 @@ const Input = () => {
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+            const encryptedImg = CryptoJS.AES.encrypt(downloadURL, key).toString();
             await updateDoc(doc(db, "chats", data.chatId), {
               messages: arrayUnion({
                 id: uuid(),
-                text,
+                text:encryptedText,
                 senderId: currentUser.uid,
                 date: Timestamp.now(),
-                img: downloadURL,
+                img: encryptedImg,
               }),
             });
           });
@@ -48,7 +56,7 @@ const Input = () => {
       await updateDoc(doc(db, "chats", data.chatId), {
         messages: arrayUnion({
           id: uuid(),
-          text,
+          text:encryptedText,
           senderId: currentUser.uid,
           date: Timestamp.now(),
         }),
@@ -57,14 +65,14 @@ const Input = () => {
 
     await updateDoc(doc(db, "userChats", currentUser.uid), {
       [data.chatId + ".lastMessage"]: {
-        text,
+        text:encryptedText,
       },
       [data.chatId + ".date"]: serverTimestamp(),
     });
 
     await updateDoc(doc(db, "userChats", data.user.uid), {
       [data.chatId + ".lastMessage"]: {
-        text,
+        text:encryptedText,
       },
       [data.chatId + ".date"]: serverTimestamp(),
     });

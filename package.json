@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "autoprefixer": "^9.8.6",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.3.2",
     "firebase": "^10.7.1",
     "postcss": "^8.4.33",
     "react": "^18.2.0",
